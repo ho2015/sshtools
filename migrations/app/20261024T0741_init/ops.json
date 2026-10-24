@@ -1,0 +1,55 @@
+[
+  {
+    "id": "table.User",
+    "label": "Create table User",
+    "summary": "Creates table User with required columns",
+    "operationClass": "additive",
+    "target": {
+      "id": "sqlite",
+      "details": {
+        "schema": "main",
+        "objectType": "table",
+        "name": "User"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"User\" does not exist",
+        "sql": "SELECT COUNT(*) = 0 AS \"result\" FROM \"sqlite_master\" WHERE (\"type\" = ? AND \"name\" = ?)",
+        "params": [
+          "table",
+          "User"
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"User\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"User\"",
+        "sql": "CREATE TABLE \"User\" (\n  \"email\" TEXT NOT NULL,\n  \"id\" INTEGER PRIMARY KEY AUTOINCREMENT,\n  UNIQUE (\"email\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"User\" exists",
+        "sql": "SELECT COUNT(*) > 0 AS \"result\" FROM \"sqlite_master\" WHERE (\"type\" = ? AND \"name\" = ?)",
+        "params": [
+          "table",
+          "User"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"User\""
+        }
+      },
+      {
+        "description": "verify table \"User\" has exactly its columns",
+        "sql": "SELECT (SELECT COUNT(*) FROM pragma_table_info('User')) = 2 AND (SELECT COUNT(*) FROM pragma_table_info('User') WHERE (name, LOWER(type), \"notnull\", pk) IN (VALUES ('email', 'text', 1, 0), ('id', 'integer', 0, 1))) = 2"
+      }
+    ]
+  }
+]

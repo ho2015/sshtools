@@ -1,28 +1,104 @@
-# Angular specific
-/dist/
-/out-tsc/
-/tmp/
-/coverage/
-/e2e/test-output/
-/.angular/
-.angular/
+# ==========================================
+# Dependencies
+# ==========================================
+node_modules/
+.pnp
+.pnp.js
 
-# Node modules and dependency files
-/node_modules/
-/package-lock.json
-/yarn.lock
-
-# Environment files
-/.env
-
-# Angular CLI and build artefacts
-/.angular-cli.json
-/.ng/
-
-# TypeScript cache
+# ==========================================
+# Build & Output
+# ==========================================
+dist/
+build/
+out/
 *.tsbuildinfo
+.vite/
+*.local
 
-# Logs
+# ==========================================
+# Environment & Secrets
+# ==========================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pub
+id_rsa*
+known_hosts
+data-keys/
+secrets/
+ssh-keys/
+
+# ==========================================
+# Prisma / Database
+# ==========================================
+prisma/dev.db
+prisma/dev.db-journal
+prisma/*.db
+prisma/*.db-journal
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+/data/
+
+# ==========================================
+# Logs & Debug
+# ==========================================
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+*.log.*
+
+# ==========================================
+# Testing & Coverage
+# ==========================================
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# ==========================================
+# OS & Editor
+# ==========================================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+*.swp
+*~
+*.sublime-project
+*.sublime-workspace
+
+# ==========================================
+# Docker & Deployment
+# ==========================================
+docker-compose.override.yml
+docker-compose.*.yml
+!docker-compose.yml
+
+# ==========================================
+# Caches & Temporary
+# ==========================================
+.cache/
+.eslintcache
+.turbo/
+tmp/
+temp/
+*.tmp
+*.temp
+
+# ==========================================
+# Prisma Migrations (اختیاری - اگر می‌خوای نگه داری)
+# ==========================================
+# prisma/migrations/   # فقط در صورت نیاز کامنت کن
