@@ -456,6 +456,7 @@ export default function App() {
   const [tabStatus, setTabStatus] = useState<Record<string, TabStatus>>({})
   const [selectedHostId, setSelectedHostId] = useState<string | null>(null)
   const [activeNav, setActiveNav] = useState<string>('Dashboard')
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [search, setSearch] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -676,7 +677,7 @@ export default function App() {
     <div className="sx-root">
       <style>{styles}</style>
 
-      <aside className="sx-sidebar">
+      <aside className={`sx-sidebar${sidebarOpen ? '' : ' is-collapsed'}`}>
         <div className="sx-brand">
           <span className="sx-logo" aria-hidden>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -688,6 +689,16 @@ export default function App() {
             <strong>sshtools</strong>
             <small>Secure shell manager</small>
           </span>
+          {/* Collapsible sidebar; navigation behavior is unchanged. */}
+          <button
+            type="button"
+            className="sx-sidebar-toggle"
+            aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+            aria-expanded={sidebarOpen}
+            onClick={() => setSidebarOpen((open) => !open)}
+          >
+            {sidebarOpen ? '‹' : '›'}
+          </button>
         </div>
         <nav className="sx-nav" aria-label="Main navigation">
           {NAV_ITEMS.map((item) => (
@@ -695,11 +706,12 @@ export default function App() {
               key={item}
               type="button"
               className={`sx-nav-item${activeNav === item ? ' is-active' : ''}`}
+              title={item}
               aria-current={activeNav === item ? 'page' : undefined}
               onClick={() => setActiveNav(item)}
             >
               <Icon name={item} />
-              <span>{item}</span>
+              <span className="sx-nav-label">{item}</span>
               {item === 'Sessions' && sessionCount > 0 ? (
                 <span className="sx-nav-count">{sessionCount}</span>
               ) : null}
@@ -1300,9 +1312,10 @@ const styles = `
   position: sticky;
   top: 0;
   height: 100vh;
+  transition: width 0.18s ease, flex-basis 0.18s ease;
 }
 
-.sx-brand { display: flex; align-items: center; gap: 10px; padding: 16px 14px; border-bottom: 1px solid var(--sx-border); }
+.sx-brand { position: relative; display: flex; align-items: center; gap: 10px; padding: 16px 14px; border-bottom: 1px solid var(--sx-border); }
 .sx-logo {
   width: 32px; height: 32px; border-radius: 8px;
   background: var(--sx-primary);
@@ -1310,6 +1323,21 @@ const styles = `
   flex: 0 0 32px;
 }
 .sx-brand-text { display: flex; flex-direction: column; line-height: 1.2; }
+.sx-sidebar-toggle {
+  margin-left: auto;
+  width: 28px; height: 28px; border: 1px solid #E2E8F0; border-radius: 8px;
+  background: #fff; color: #334155; cursor: pointer; font-size: 16px; line-height: 1;
+}
+.sx-sidebar-toggle:hover { background: #F8FAFC; }
+.sx-sidebar.is-collapsed { width: 72px; flex-basis: 72px; }
+.sx-sidebar.is-collapsed .sx-brand-text,
+.sx-sidebar.is-collapsed .sx-nav-label,
+.sx-sidebar.is-collapsed .sx-nav-count,
+.sx-sidebar.is-collapsed .sx-sidebar-footer { display: none; }
+.sx-sidebar.is-collapsed .sx-nav-item { justify-content: center; padding-left: 0; padding-right: 0; }
+.sx-sidebar.is-collapsed .sx-brand { justify-content: center; }
+.sx-sidebar.is-collapsed .sx-sidebar-toggle { margin-left: 0; }
+
 .sx-brand-text strong { font-size: 14px; }
 .sx-brand-text small { color: var(--sx-muted); font-size: 11px; }
 
