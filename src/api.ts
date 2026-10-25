@@ -16,6 +16,24 @@ export type HostInput = {
   user: string
 }
 
+export type AuditEvent = {
+  id?: string
+  timestamp?: string
+  time?: string
+  createdAt?: string
+  created_at?: string
+  user?: string
+  username?: string
+  command?: string
+  cmd?: string
+  sessionId?: string
+  host?: string
+  hostName?: string
+  hostname?: string
+  result?: string
+  status?: string
+}
+
 async function parseError(response: Response, fallback: string): Promise<Error> {
   try {
     const body = await response.json()
@@ -72,4 +90,10 @@ export async function createTerminalTicket(
     throw new Error('Invalid response from server')
   }
   return data.ticket
+}
+
+export async function listAudit(): Promise<AuditEvent[]> {
+  const res = await fetch('/api/audit')
+  if (!res.ok) throw await parseError(res, 'Failed to load audit')
+  return res.json()
 }

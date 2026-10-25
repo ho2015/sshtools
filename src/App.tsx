@@ -10,6 +10,8 @@ import {
   createTerminalTicket,
   type Host,
   type HostInput,
+  listAudit,
+  type AuditEvent,
 } from './api'
 
 /* ------------------------------------------------------------------ */
@@ -85,7 +87,7 @@ function createSessionId(): string {
   return `sid-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
 }
 
-function toAuditRow(raw: Record<string, unknown>, index: number): AuditRow {
+function toAuditRow(raw: AuditEvent | Record<string, unknown>, index: number): AuditRow {
   const pick = (...keys: string[]): unknown => {
     for (const key of keys) {
       if (raw[key] !== undefined && raw[key] !== null) return raw[key]
@@ -449,6 +451,7 @@ const ADD_FORM_EMPTY: AddFormState = {
 }
 
 export default function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [hosts, setHosts] = useState<Host[]>([])
   const [hostsLoading, setHostsLoading] = useState(true)
   const [tabs, setTabs] = useState<TermTab[]>([])
@@ -456,7 +459,6 @@ export default function App() {
   const [tabStatus, setTabStatus] = useState<Record<string, TabStatus>>({})
   const [selectedHostId, setSelectedHostId] = useState<string | null>(null)
   const [activeNav, setActiveNav] = useState<string>('Dashboard')
-  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [search, setSearch] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -494,8 +496,14 @@ export default function App() {
   }, [])
 
   const loadAudit = useCallback(async () => {
-    setAuditRows([])
-    setAuditError('Audit API unavailable')
+    try {
+      const response = await listAudit()
+      setAuditRows(normalizeEvents(response))
+      setAuditError(null)
+    } catch {
+      setAuditError('Audit API unavailable')
+      setAuditRows([])
+    }
   }, [])
 
   useEffect(() => {
@@ -673,7 +681,101 @@ export default function App() {
 
   /* ---------------- render ---------------- */
 
-  return (
+  /* ---------------- audit panel (shared: dashboard + Audit Log page) ---------------- */
+
+  {/* ---------------- Audit (shared panel) ---------------- */}
+    <section className="sx-card sx-audit-card" aria-labelledby="sx-audit-title">
+      <div className="sx-card-head">
+        <h2 id="sx-audit-title">Command History &amp; Audit</h2>
+        <div className="sx-card-head-actions">
+          {auditError ? <span className="sx-audit-error">{auditError}</span> : null}
+          <span className="sx-muted">{auditRows.length} events</span>
+        </div>
+      </div>
+      <div className="sx-table-wrap sx-audit-wrap">
+        <table className="sx-table sx-table-sm">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>User</th>
+              <th>Command</th>
+              <th>Session ID</th>
+              <th>Host</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            {auditRows.length === 0 ? (
+              <tr><td colSpan={6} className="sx-empty">No audit events.</td></tr>
+            ) : (
+              auditRows.map((row) => (
+                <tr key={row.id}>
+                  <td className="sx-mono sx-nowrap">{row.timestamp || '—'}</td>
+                  <td>{row.user}</td>
+                  <td className="sx-mono sx-cmd" title={row.command}>{row.command}</td>
+                  <td className="sx-mono sx-nowrap">{row.sessionId}</td>
+                  <td>{row.host}</td>
+                  <td>
+                    <span className={`sx-badge sx-badge-${resultTone(row.result)}`}>
+                      {row.result}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+const auditPanel = (
+  <section className="sx-card sx-audit-card" aria-labelledby="sx-audit-title">
+    <div className="sx-card-head">
+      <h2 id="sx-audit-title">Command History &amp; Audit</h2>
+      <div className="sx-card-head-actions">
+        {auditError ? <span className="sx-audit-error">{auditError}</span> : null}
+        <span className="sx-muted">{auditRows.length} events</span>
+      </div>
+    </div>
+    <div className="sx-table-wrap sx-audit-wrap">
+      <table className="sx-table sx-table-sm">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>User</th>
+            <th>Command</th>
+            <th>Session ID</th>
+            <th>Host</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          {auditRows.length === 0 ? (
+            <tr><td colSpan={6} className="sx-empty">No audit events.</td></tr>
+          ) : (
+            auditRows.map((row) => (
+              <tr key={row.id}>
+                <td className="sx-mono sx-nowrap">{row.timestamp || '—'}</td>
+                <td>{row.user}</td>
+                <td className="sx-mono sx-cmd" title={row.command}>{row.command}</td>
+                <td className="sx-mono sx-nowrap">{row.sessionId}</td>
+                <td>{row.host}</td>
+                <td>
+                  <span className={`sx-badge sx-badge-${resultTone(row.result)}`}>
+                    {row.result}
+                  </span>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  </section>
+);
+
+
+return (
     <div className="sx-root">
       <style>{styles}</style>
 
@@ -966,51 +1068,12 @@ export default function App() {
                   </div>
                 </section>
 
-                {/* ---------------- Audit ---------------- */}
-                <section className="sx-card sx-audit-card" aria-labelledby="sx-audit-title">
-                  <div className="sx-card-head">
-                    <h2 id="sx-audit-title">Command History &amp; Audit</h2>
-                    <div className="sx-card-head-actions">
-                      {auditError ? <span className="sx-audit-error">{auditError}</span> : null}
-                      <span className="sx-muted">{auditRows.length} events</span>
-                    </div>
-                  </div>
-                  <div className="sx-table-wrap sx-audit-wrap">
-                    <table className="sx-table sx-table-sm">
-                      <thead>
-                        <tr>
-                          <th>Timestamp</th>
-                          <th>User</th>
-                          <th>Command</th>
-                          <th>Session ID</th>
-                          <th>Host</th>
-                          <th>Result</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {auditRows.length === 0 ? (
-                          <tr><td colSpan={6} className="sx-empty">No audit events.</td></tr>
-                        ) : (
-                          auditRows.map((row) => (
-                            <tr key={row.id}>
-                              <td className="sx-mono sx-nowrap">{row.timestamp || '—'}</td>
-                              <td>{row.user}</td>
-                              <td className="sx-mono sx-cmd" title={row.command}>{row.command}</td>
-                              <td className="sx-mono sx-nowrap">{row.sessionId}</td>
-                              <td>{row.host}</td>
-                              <td>
-                                <span className={`sx-badge sx-badge-${resultTone(row.result)}`}>
-                                  {row.result}
-                                </span>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
+                {auditPanel}
               </div>
+            </div>
+          ) : activeNav === 'Audit Log' ? (
+            <div className="sx-grid sx-grid-audit">
+              {auditPanel}
             </div>
           ) : (
             <div className="sx-card sx-placeholder">
@@ -1272,9 +1335,9 @@ export default function App() {
 
 const styles = `
 :root {
-  --sx-bg: #F8FAFC;
+  --sx-bg: #F4F7FB;
   --sx-card: #FFFFFF;
-  --sx-border: #E2E8F0;
+  --sx-border: #E6EBF2;
   --sx-text: #0F172A;
   --sx-muted: #64748B;
   --sx-primary: #2563EB;
@@ -1303,8 +1366,8 @@ const styles = `
 /* ---------------- Sidebar ---------------- */
 
 .sx-sidebar {
-  width: 224px;
-  flex: 0 0 224px;
+  width: 220px;
+  flex: 0 0 220px;
   background: var(--sx-card);
   border-right: 1px solid var(--sx-border);
   display: flex;
@@ -1325,7 +1388,7 @@ const styles = `
 .sx-brand-text { display: flex; flex-direction: column; line-height: 1.2; }
 .sx-sidebar-toggle {
   margin-left: auto;
-  width: 28px; height: 28px; border: 1px solid #E2E8F0; border-radius: 8px;
+  width: 28px; height: 28px; border: 1px solid #E6EBF2; border-radius: 8px;
   background: #fff; color: #334155; cursor: pointer; font-size: 16px; line-height: 1;
 }
 .sx-sidebar-toggle:hover { background: #F8FAFC; }
@@ -1514,15 +1577,23 @@ const styles = `
 
 /* ---------------- Sessions & terminal ---------------- */
 
-.sx-tabs { display: flex; align-items: center; gap: 6px; padding: 10px 12px 0; flex-wrap: wrap; }
+.sx-tabs { display: flex; align-items: center; gap: 6px; padding: 10px 12px 0; flex-wrap: wrap; background: #F1F4F9; border-bottom: 1px solid var(--sx-border); }
 .sx-tabs-empty { color: var(--sx-muted); font-size: 12px; padding: 8px 12px 0; }
 .sx-tab {
   display: inline-flex; align-items: center; gap: 7px;
   border: 1px solid var(--sx-border); border-bottom: none;
-  border-radius: 8px 8px 0 0; background: #F1F5F9;
-  padding: 6px 8px 6px 10px; cursor: pointer; user-select: none;
+  border-radius: 10px 10px 0 0; background: #E9EEF6;
+  color: #475569;
+  padding: 7px 9px 7px 11px; cursor: pointer; user-select: none;
+  max-width: 230px;
 }
-.sx-tab.is-active { background: #fff; border-color: var(--sx-primary); color: var(--sx-primary); font-weight: 600; }
+.sx-tab:hover { background: #EEF2F8; }
+.sx-tab::before {
+  content: ""; width: 7px; height: 7px; border-radius: 999px;
+  background: #CBD5E1; flex: 0 0 7px;
+}
+.sx-tab.is-active { background: #fff; border-color: var(--sx-border); color: var(--sx-primary); font-weight: 600; }
+.sx-tab.is-active::before { background: #22C55E; }
 .sx-tab-title { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sx-tab-close {
   background: transparent; border: none; cursor: pointer;
@@ -1531,7 +1602,7 @@ const styles = `
 .sx-tab-close:hover { background: #FEE2E2; color: #991B1B; }
 
 /* Terminal visibility: every tab stays mounted, only the active one is displayed */
-.sx-terminal-stage { position: relative; height: 420px; overflow: hidden; background: #0f172a; }
+.sx-terminal-stage { position: relative; height: 420px; overflow: hidden; background: #0B1220; }
 .sx-terminal {
   position: absolute; inset: 0;
   display: none !important;
@@ -1560,7 +1631,7 @@ const styles = `
 }
 .sx-modal {
   width: 520px; max-width: 100%; max-height: 90vh; overflow: auto;
-  background: var(--sx-card); border-radius: 14px;
+  background: var(--sx-card); border-radius: 16px;
   border: 1px solid var(--sx-border);
   box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
 }
